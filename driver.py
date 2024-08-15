@@ -16,18 +16,24 @@ create_user_table()
 
 ###############################################################################
 ## Required Routes for Project:
-##     
+##     1. blank page                  @app.route(/)
 ##     1. register page               @app.route(/register)
 ##     1. login page                  @app.route(/login)
+##     3. logout page                 @app.route(/logout)
 ##     2. home page                   @app.route('/home')
 ##     3. leagues page                @app.route('/leagues')
 ##     4. mypicks page                @app.route('/mypicks')
 ##
 ################################################################################
 
+@app.route('/')
+def index():
+    return render_template('index.html')
+
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
+        email = request.form['email']
         username = request.form['username']
         password = request.form['password']
         create_user(username, password)
@@ -62,7 +68,9 @@ def logout():
 
 @app.route('/home')
 def home():
-    return "home page"
+    if 'username' in session:
+        return f"Hello, {session['username']}!"
+    return redirect(url_for('login'))
 
 @app.route('/leagues')
 def leagues():
