@@ -3,34 +3,62 @@
 ## Import "prefix" code into your Flask app to make your app usable when running
 ## Flask either in the csel.io virtual machine or running on your local machine.
 ## The module will create an app for you to use
-import prefix
 import sqlite3
-from flask import Flask, request, url_for, make_response, render_template, jsonify, redirect
+from flask import Flask, request, url_for, make_response, render_template, jsonify, redirect, session, flash
+from database import create_user, verify_user, create_user_table
 
 # create app to use in this Flask application
 app = Flask(__name__)
 
-# Insert the wrapper for handling PROXY when using csel.io virtual machine
-# Calling this routine will have no effect if running on local machine
-prefix.use_PrefixMiddleware(app)   
+#make sure the user table exists
+create_user_table()
 
-# test route to show prefix settings
-@app.route('/prefix_url')  
-def prefix_url():
-    return 'The URL for this page is {}'.format(url_for('prefix_url'))
 
 ###############################################################################
 ## Required Routes for Project:
-##
-##     1. login page                  @app.route(/)
+##     
+##     1. register page               @app.route(/register)
+##     1. login page                  @app.route(/login)
 ##     2. home page                   @app.route('/home')
 ##     3. leagues page                @app.route('/leagues')
 ##     4. mypicks page                @app.route('/mypicks')
 ##
 ################################################################################
-@app.route('/')
+
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+        create_user(username, password)
+        flash('Registration successful! Please log in.', 'success')
+        return redirect(url_for('login'))
+    
+    return render_template('register.html')
+
+@app.route('/login', methods=['GET', 'POST'])
 def login():
-    return "login page"
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+        user = verify_user(username, password)
+
+        if user:
+            session['user_id'] = user['id']
+            session['username'] = user['username']
+            flash('Login successful!', 'success')
+            return redirect(url_for('home'))
+        else:
+            flash('Login failed. Check your credentials.', 'danger')
+    
+    return render_template('login.html')
+
+@app.route('/logout')
+def logout():
+    session.pop('user_id', None)
+    session.pop('username', None)
+    flash('You have been logged out.', 'info')
+    return redirect(url_for('login'))
 
 @app.route('/home')
 def home():
